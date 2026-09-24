@@ -2,7 +2,12 @@ public class CentroComercial {
 
     private Fila fila;
     private Tiempo tiempo;
-    private Caja[] cajas;
+
+    private Caja caja1;
+    private Caja caja2;
+    private Caja caja3;
+    private Caja caja4;
+
     private Console console;
 
     private boolean haLlegadoCliente;
@@ -10,19 +15,17 @@ public class CentroComercial {
     private final double PROBABILIDAD_LLEGADA_CLIENTES = 0.6;
     private final double PROBABILIDAD_CAJA_LIBRE = 0.4;
 
-    private final int NUMERO_CAJAS = 4;
-
     public CentroComercial() {
 
         fila = new Fila();
         tiempo = new Tiempo();
+
+        caja1 = new Caja();
+        caja2 = new Caja();
+        caja3 = new Caja();
+        caja4 = new Caja();
+
         console = new Console();
-
-        cajas = new Caja[NUMERO_CAJAS];
-
-        for (int i = 0; i < NUMERO_CAJAS; i++) {
-            cajas[i] = new Caja();
-        }
     }
 
     public void ejecutar() {
@@ -39,11 +42,9 @@ public class CentroComercial {
 
             atenderClientes();
 
-            asignarClienteACaja();
+            asignarClientesACajas();
 
             procesarAviso();
-
-            fila.registrarEstado();
 
             mostrarEstado();
 
@@ -56,33 +57,22 @@ public class CentroComercial {
 
     private void procesarLlegadaCliente() {
 
-        haLlegadoCliente = Math.random() <
-                           PROBABILIDAD_LLEGADA_CLIENTES;
+        haLlegadoCliente =
+            Math.random() < PROBABILIDAD_LLEGADA_CLIENTES;
 
         if (haLlegadoCliente) {
 
             boolean preferente = Math.random() < 0.2;
 
-            Cliente cliente;
+            Cliente cliente =
+                new Cliente(
+                    tiempo.obtenerMinuto(),
+                    preferente
+                );
 
             if (preferente) {
-
-                cliente = new Cliente(
-                        tiempo.obtenerMinuto(),
-                        true,
-                        -1
-                );
-
                 fila.añadirPreferente(cliente);
-
             } else {
-
-                cliente = new Cliente(
-                        tiempo.obtenerMinuto(),
-                        false,
-                        -1
-                );
-
                 fila.añadirCliente(cliente);
             }
         }
@@ -91,7 +81,7 @@ public class CentroComercial {
     private void procesarAburrimiento() {
 
         fila.comprobarAburrimiento(
-                tiempo.obtenerMinuto()
+            tiempo.obtenerMinuto()
         );
     }
 
@@ -99,35 +89,45 @@ public class CentroComercial {
 
         if (Math.random() < PROBABILIDAD_CAJA_LIBRE) {
 
-            for (int i = 0; i < cajas.length; i++) {
+            if (!caja1.estaAbierta()) {
+                caja1.abrir();
 
-                if (!cajas[i].estaAbierta()) {
+            } else if (!caja2.estaAbierta()) {
+                caja2.abrir();
 
-                    cajas[i].abrir();
-                    break;
-                }
+            } else if (!caja3.estaAbierta()) {
+                caja3.abrir();
+
+            } else if (!caja4.estaAbierta()) {
+                caja4.abrir();
             }
         }
     }
 
     private void atenderClientes() {
 
-        for (int i = 0; i < cajas.length; i++) {
-            cajas[i].procesarAtencion();
-        }
+        caja1.procesarAtencion();
+        caja2.procesarAtencion();
+        caja3.procesarAtencion();
+        caja4.procesarAtencion();
     }
 
-    private void asignarClienteACaja() {
+    private void asignarClientesACajas() {
 
-        for (int i = 0; i < cajas.length; i++) {
+        if (caja1.puedeAtender() && fila.hayGente()) {
+            caja1.añadirCliente(fila.sacar());
+        }
 
-            if (cajas[i].puedeAtender() &&
-                fila.hayGente()) {
+        if (caja2.puedeAtender() && fila.hayGente()) {
+            caja2.añadirCliente(fila.sacar());
+        }
 
-                Cliente cliente = fila.sacar();
+        if (caja3.puedeAtender() && fila.hayGente()) {
+            caja3.añadirCliente(fila.sacar());
+        }
 
-                cajas[i].añadirCliente(cliente);
-            }
+        if (caja4.puedeAtender() && fila.hayGente()) {
+            caja4.añadirCliente(fila.sacar());
         }
     }
 
@@ -157,40 +157,42 @@ public class CentroComercial {
 
     private void mostrarCajas() {
 
-        for (int i = 0; i < cajas.length; i++) {
+        console.write("Caja[1]");
+        caja1.mostrar();
 
-            console.write("Caja[" + (i + 1) + "]");
+        console.write("Caja[2]");
+        caja2.mostrar();
 
-            cajas[i].mostrar();
-        }
+        console.write("Caja[3]");
+        caja3.mostrar();
+
+        console.write("Caja[4]");
+        caja4.mostrar();
     }
 
     private void mostrarResumen() {
 
-        int numeroClientesAtendidos = 0;
-
-        for (int i = 0; i < cajas.length; i++) {
-
-            numeroClientesAtendidos =
-                    numeroClientesAtendidos +
-                    cajas[i].clientesAtendidos();
-        }
+        int numeroClientesAtendidos =
+            caja1.clientesAtendidos()
+            + caja2.clientesAtendidos()
+            + caja3.clientesAtendidos()
+            + caja4.clientesAtendidos();
 
         console.writeln();
         console.writeln("========== RESUMEN ==========");
+
         console.writeln(
-                "Numero de clientes atendidos: "
-                + numeroClientesAtendidos
+            "Numero de clientes atendidos: "
+            + numeroClientesAtendidos
         );
 
         console.writeln(
-                "Personas en fila: "
-                + fila.obtenerNumero()
+            "Personas en fila: "
+            + fila.obtenerNumero()
         );
     }
 
     private void pausar() {
-
         console.pause(1);
     }
 }

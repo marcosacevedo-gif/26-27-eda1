@@ -1,10 +1,8 @@
 public class Fila {
 
-    private Cliente[] clientes;
+    private Cliente primero;
+    private Cliente ultimo;
     private int numeroClientes;
-
-    private int[] estados;
-    private int numeroEstados;
 
     private final int MAXIMO_PERSONAS = 30;
     private final double PROBABILIDAD_ABURRIRSE = 0.3;
@@ -12,33 +10,26 @@ public class Fila {
     private Console console;
 
     public Fila() {
-        clientes = new Cliente[30];
+        primero = null;
+        ultimo = null;
         numeroClientes = 0;
-
-        estados = new int[120];
-        numeroEstados = 0;
-
         console = new Console();
     }
 
     public boolean hayGente() {
-        return numeroClientes > 0;
+        return primero != null;
     }
 
     public int obtenerNumero() {
         return numeroClientes;
     }
 
-    public Cliente primero() {
-        if (numeroClientes > 0) {
-            return clientes[0];
-        }
-
-        return null;
-    }
-
     public boolean estaLlena() {
         return numeroClientes >= MAXIMO_PERSONAS;
+    }
+
+    public Cliente primero() {
+        return primero;
     }
 
     public boolean añadirCliente(Cliente cliente) {
@@ -47,7 +38,14 @@ public class Fila {
             return false;
         }
 
-        clientes[numeroClientes] = cliente;
+        if (!hayGente()) {
+            primero = cliente;
+            ultimo = cliente;
+        } else {
+            ultimo.establecerSiguiente(cliente);
+            ultimo = cliente;
+        }
+
         numeroClientes++;
 
         return true;
@@ -59,46 +57,59 @@ public class Fila {
             return null;
         }
 
-        Cliente cliente = clientes[0];
+        Cliente cliente = primero;
 
-        for (int i = 1; i < numeroClientes; i++) {
-            clientes[i - 1] = clientes[i];
-        }
+        primero = primero.obtenerSiguiente();
+
+        cliente.establecerSiguiente(null);
 
         numeroClientes--;
 
-        clientes[numeroClientes] = null;
+        if (numeroClientes == 0) {
+            ultimo = null;
+        }
 
         return cliente;
     }
 
-    public void registrarEstado() {
+    public boolean añadirPreferente(Cliente cliente) {
 
-        if (numeroEstados < estados.length) {
-            estados[numeroEstados] = numeroClientes;
-            numeroEstados++;
-        }
-    }
-
-    public void mostrar() {
-
-        console.writeln("FILA:");
-
-        if (numeroClientes == 0) {
-            console.writeln("  Vacia");
-        } else {
-
-            for (int i = 0; i < numeroClientes; i++) {
-
-                if (clientes[i].esPreferente()) {
-                    console.writeln("  Cliente " + (i + 1) + " - PREFERENTE");
-                } else {
-                    console.writeln("  Cliente " + (i + 1));
-                }
-            }
+        if (estaLlena()) {
+            return false;
         }
 
-        console.writeln("Longitud: " + numeroClientes + " metros");
+        if (!hayGente()) {
+            primero = cliente;
+            ultimo = cliente;
+            numeroClientes++;
+            return true;
+        }
+
+        if (!primero.esPreferente()) {
+            cliente.establecerSiguiente(primero);
+            primero = cliente;
+            numeroClientes++;
+            return true;
+        }
+
+        Cliente actual = primero;
+
+        while (actual.obtenerSiguiente() != null &&
+               actual.obtenerSiguiente().esPreferente()) {
+
+            actual = actual.obtenerSiguiente();
+        }
+
+        cliente.establecerSiguiente(actual.obtenerSiguiente());
+        actual.establecerSiguiente(cliente);
+
+        if (cliente.obtenerSiguiente() == null) {
+            ultimo = cliente;
+        }
+
+        numeroClientes++;
+
+        return true;
     }
 
     public void comprobarAburrimiento(int minutoActual) {
@@ -111,89 +122,73 @@ public class Fila {
             return;
         }
 
-        int i = 0;
+        Cliente actual = primero;
+        Cliente anterior = null;
 
-        while (i < numeroClientes) {
+        while (actual != null) {
 
-            if (clientes[i].minutosEnCola(minutoActual) > 8) {
+            Cliente siguiente = actual.obtenerSiguiente();
 
-                if (Math.random() < PROBABILIDAD_ABURRIRSE) {
+            if (actual.minutosEnCola(minutoActual) > 8 &&
+                Math.random() < PROBABILIDAD_ABURRIRSE) {
 
-                    eliminarCliente(i);
-
+                if (anterior == null) {
+                    primero = siguiente;
                 } else {
-                    i++;
+                    anterior.establecerSiguiente(siguiente);
                 }
 
+                if (actual == ultimo) {
+                    ultimo = anterior;
+                }
+
+                numeroClientes--;
+
+                actual.establecerSiguiente(null);
+
             } else {
-                i++;
+                anterior = actual;
+            }
+
+            actual = siguiente;
+        }
+
+        if (numeroClientes == 0) {
+            primero = null;
+            ultimo = null;
+        }
+    }
+
+    public void mostrar() {
+
+        console.writeln("FILA:");
+
+        if (!hayGente()) {
+            console.writeln("  Vacia");
+        } else {
+
+            Cliente actual = primero;
+            int posicion = 1;
+
+            while (actual != null) {
+
+                if (actual.esPreferente()) {
+                    console.writeln(
+                        "  Cliente " + posicion + " - PREFERENTE"
+                    );
+                } else {
+                    console.writeln(
+                        "  Cliente " + posicion
+                    );
+                }
+
+                actual = actual.obtenerSiguiente();
+                posicion++;
             }
         }
-    }
 
-    private void eliminarCliente(int posicion) {
-
-        for (int i = posicion + 1; i < numeroClientes; i++) {
-            clientes[i - 1] = clientes[i];
-        }
-
-        numeroClientes--;
-
-        clientes[numeroClientes] = null;
-    }
-
-    public boolean añadirPreferente(Cliente cliente) {
-
-        if (estaLlena()) {
-            return false;
-        }
-
-        int posicion = 0;
-
-        while (posicion < numeroClientes &&
-               clientes[posicion].esPreferente()) {
-
-            posicion++;
-        }
-
-        for (int i = numeroClientes; i > posicion; i--) {
-            clientes[i] = clientes[i - 1];
-        }
-
-        clientes[posicion] = cliente;
-        numeroClientes++;
-
-        return true;
-    }
-
-    public boolean colarCliente(Cliente cliente, int posicionConocido) {
-
-        if (estaLlena()) {
-            return false;
-        }
-
-        if (posicionConocido < 0 ||
-            posicionConocido >= numeroClientes) {
-
-            return false;
-        }
-
-        int posicion = posicionConocido + 1;
-
-        for (int i = numeroClientes; i > posicion; i--) {
-            clientes[i] = clientes[i - 1];
-        }
-
-        clientes[posicion] = cliente;
-        numeroClientes++;
-
-        return true;
-    }
-
-    public void entregarCompras(int posicion) {
-
-        if (posicion >= 0 && posicion < numeroClientes) {
-            eliminarCliente(posicion);
-        }
+        console.writeln(
+            "Longitud: " + numeroClientes + " metros"
+        );
     }
 }

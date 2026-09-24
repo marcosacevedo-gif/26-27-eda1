@@ -2,12 +2,12 @@ public class Cliente {
 
     private int minutoLlegada;
     private boolean preferente;
-    private int conocido;
+    private Cliente siguiente;
 
-    public Cliente(int minutoLlegada, boolean preferente, int conocido) {
+    public Cliente(int minutoLlegada, boolean preferente) {
         this.minutoLlegada = minutoLlegada;
         this.preferente = preferente;
-        this.conocido = conocido;
+        this.siguiente = null;
     }
 
     public int minutosEnCola(int minutoActual) {
@@ -18,11 +18,11 @@ public class Cliente {
         return preferente;
     }
 
-    public int obtenerConocido() {
-        return conocido;
+    public Cliente obtenerSiguiente() {
+        return siguiente;
     }
 
-    public boolean tieneConocido() {
-        return conocido >= 0;
+    public void establecerSiguiente(Cliente siguiente) {
+        this.siguiente = siguiente;
     }
 }
