@@ -1,5 +1,5 @@
 
-public class List {
+public class lista {
 
     private Node first = null;
 
